@@ -77,7 +77,7 @@ class PostsURLTests(TestCase):
         """
         response = self.author_client.get(
             reverse(POST_EDIT_URL, kwargs={'post_id': self.post.id})
-            )
+        )
         self.assertTemplateUsed(response, POST_EDIT_TEMPLATE)
 
     def test_url_access(self):
@@ -118,7 +118,7 @@ class PostsURLTests(TestCase):
         """Страница /posts/<int:post_id>/edit/ доступна автору."""
         response = self.author_client.get(
             reverse(POST_EDIT_URL, kwargs={'post_id': self.post.id})
-            )
+        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_post_edit_redirect_not_author(self):
@@ -128,7 +128,8 @@ class PostsURLTests(TestCase):
                 POST_EDIT_URL, kwargs={'post_id': self.post.id}
             ), follow=True
         )
-        self.assertRedirects(response, reverse(
-            POST_DETAIL_URL, kwargs={'post_id': self.post.id}
+        self.assertRedirects(
+            response, reverse(
+                POST_DETAIL_URL, kwargs={'post_id': self.post.id}
             )
         )

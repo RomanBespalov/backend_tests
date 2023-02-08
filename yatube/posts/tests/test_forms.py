@@ -51,7 +51,11 @@ class PostFormTests_1(TestCase):
             data=form_data,
             follow=True
         )
-        self.assertRedirects(response, reverse('posts:profile', kwargs={'username': self.post.author.username}))
+        self.assertRedirects(
+            response, reverse(
+                'posts:profile', kwargs={'username': self.post.author.username}
+            )
+        )
         self.assertEqual(Post.objects.count(), posts_count+1)
 
     def test_edit_post(self):
