@@ -56,7 +56,7 @@ class PostFormTests_1(TestCase):
                 'posts:profile', kwargs={'username': self.post.author.username}
             )
         )
-        self.assertEqual(Post.objects.count(), posts_count+1)
+        self.assertEqual(Post.objects.count(), posts_count + 1)
 
     def test_edit_post(self):
         form_data = {
