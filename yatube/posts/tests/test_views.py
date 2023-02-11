@@ -1,28 +1,12 @@
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
 from django.core.paginator import Page
+from django.test import Client, TestCase
 from django.urls import reverse
-from django import forms
 
-from ..models import Group, Post
-
-User = get_user_model()
-
-INDEX_URL = 'posts:index'
-GROUP_URL = 'posts:group_list'
-PROFILE_URL = 'posts:profile'
-POST_DETAIL_URL = 'posts:post_detail'
-POST_CREATE_URL = 'posts:post_create'
-POST_EDIT_URL = 'posts:post_edit'
-
-INDEX_TEMPLATE = 'posts/index.html'
-GROUP_TEMPLATE = 'posts/group_list.html'
-PROFILE_TEMPLATE = 'posts/profile.html'
-POST_DETAIL_TEMPLATE = 'posts/post_detail.html'
-POST_CREATE_TEMPLATE = 'posts/create_post.html'
-POST_EDIT_TEMPLATE = 'posts/create_post.html'
+from posts.models import Group, Post, User
+from posts.tests import constants as cs
+from posts.forms import PostForm
 
 
 POSTS_PER_PAGE = 10
@@ -43,38 +27,38 @@ class PostsViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.author = User.objects.create_user(username='author')
+        cls.author = User.objects.create_user(username=AUTHOR_USERNAME)
         cls.post = Post.objects.create(
             author=cls.author,
-            text='Test post',
+            text=POST_TEXT,
         )
         cls.group = Group.objects.create(
-            title='Test group',
-            slug='slug1',
-            description='Test description',
+            title=GROUP_TITLE,
+            slug=GROUP_SLUG,
+            description=GROUP_DESCRIPTION,
         )
 
     def setUp(self):
-        self.user = User.objects.create_user(username='RomanBespalov')
+        self.user = User.objects.create_user(username=USER_USERNAME)
         self.author_client = Client()
         self.author_client.force_login(self.author)
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_pages_names = {
-            INDEX_TEMPLATE: reverse(INDEX_URL),
-            GROUP_TEMPLATE: (
-                reverse(GROUP_URL, kwargs={'slug': self.group.slug})
+            cs.INDEX_TEMPLATE: reverse(cs.INDEX_URL),
+            cs.GROUP_TEMPLATE: (
+                reverse(cs.GROUP_URL, kwargs={'slug': self.group.slug})
             ),
-            PROFILE_TEMPLATE: (
-                reverse(PROFILE_URL, kwargs={'username': self.author})
+            cs.PROFILE_TEMPLATE: (
+                reverse(cs.PROFILE_URL, kwargs={'username': self.author})
             ),
-            POST_DETAIL_TEMPLATE: (
-                reverse(POST_DETAIL_URL, kwargs={'post_id': self.post.id})
+            cs.POST_DETAIL_TEMPLATE: (
+                reverse(cs.POST_DETAIL_URL, kwargs={'post_id': self.post.id})
             ),
-            POST_CREATE_TEMPLATE: reverse(POST_CREATE_URL),
-            POST_EDIT_TEMPLATE: (
-                reverse(POST_EDIT_URL, kwargs={'post_id': self.post.id})
+            cs.POST_CREATE_TEMPLATE: reverse(cs.POST_CREATE_URL),
+            cs.POST_EDIT_TEMPLATE: (
+                reverse(cs.POST_EDIT_URL, kwargs={'post_id': self.post.id})
             ),
         }
 
@@ -88,55 +72,31 @@ class PostPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.author = User.objects.create_user(username='author')
+        cls.author = User.objects.create_user(username=AUTHOR_USERNAME)
         cls.post = Post.objects.create(
             author=cls.author,
-            text='Test post',
+            text=POST_TEXT,
         )
         cls.group = Group.objects.create(
-            title='Test group',
-            slug='slug1',
-            description='Test description',
+            title=GROUP_TITLE,
+            slug=GROUP_SLUG,
+            description=GROUP_DESCRIPTION,
         )
 
     def setUp(self):
-        self.user = User.objects.create_user(username='RomanBespalov')
+        self.user = User.objects.create_user(username=USER_USERNAME)
         self.author_client = Client()
         self.author_client.force_login(self.user)
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
-        response = self.author_client.get(reverse(POST_CREATE_URL))
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.fields.ChoiceField,
-        }
-
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_field, expected)
-
-    # Не работает, не знаю почему
-    # def test_post_edit_page_show_correct_context(self):
-    #     """Шаблон post_edit сформирован с правильным контекстом."""
-    #     response = self.author_client.get(
-    #         reverse(POST_EDIT_URL, kwargs={'post_id': self.post.id})
-    #     )
-    #     form_fields = {
-    #         'text': forms.fields.CharField,
-    #         'group': forms.fields.ChoiceField,
-    #     }
-
-    #     for value, expected in form_fields.items():
-    #         with self.subTest(value=value):
-    #             form_field = response.context.get('form').fields.get(value)
-    #             self.assertIsInstance(form_field, expected)
+        response = self.author_client.get(reverse(cs.POST_CREATE_URL))
+        self.assertIsInstance(response.context.get('form'), PostForm)
 
     def test_post_detail_pages_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = (self.author_client.get(
-            reverse(POST_DETAIL_URL, kwargs={'post_id': self.post.id}))
+            reverse(cs.POST_DETAIL_URL, kwargs={'post_id': self.post.id}))
         )
         self.assertEqual(response.context.get('post').text, self.post.text)
         self.assertEqual(
@@ -171,11 +131,17 @@ class PaginatorViewsTest(TestCase):
         ]
         for url, queryset in urls_expected_post_number:
             with self.subTest(url=url):
-                response = self.client.get(url)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
-                page_obj = response.context.get('page_obj')
-                self.assertIsNotNone(page_obj)
-                self.assertIsInstance(page_obj, Page)
+                response_1 = self.client.get(url)
+                response_2 = self.client.get(url, {'page': 2})
+                self.assertEqual(response_1.status_code, HTTPStatus.OK)
+                self.assertEqual(response_2.status_code, HTTPStatus.OK)
+                page_obj_1 = response_1.context.get('page_obj')
+                page_obj_2 = response_2.context.get('page_obj')
+                self.assertIsNotNone(page_obj_1)
+                self.assertIsNotNone(page_obj_2)
+                self.assertIsInstance(page_obj_1, Page)
+                self.assertIsInstance(page_obj_2, Page)
                 self.assertQuerysetEqual(
-                    page_obj.object_list, queryset, transform=lambda x: x
+                    page_obj_1.object_list, queryset, transform=lambda x: x
                 )
+                self.assertEqual(len(page_obj_2.object_list), 1)

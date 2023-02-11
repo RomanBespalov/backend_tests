@@ -5,7 +5,10 @@ User = get_user_model()
 
 
 class Group(models.Model):
-    title = models.CharField(max_length=200, verbose_name='заголовок')
+    title = models.CharField(
+        max_length=200,
+        verbose_name='заголовок',
+    )
     slug = models.SlugField(unique=True, verbose_name='ссылка')
     description = models.TextField(verbose_name='описание')
 
@@ -14,15 +17,19 @@ class Group(models.Model):
 
 
 class Post(models.Model):
-    text = models.TextField(verbose_name='текст')
+    text = models.TextField(
+        verbose_name='текст',
+        help_text='Укажите текст поста',
+    )
     pub_date = models.DateTimeField(
-        auto_now_add=True, verbose_name='дата публикации'
+        auto_now_add=True,
+        verbose_name='дата публикации',
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='posts',
-        verbose_name='автор'
+        verbose_name='автор',
     )
     group = models.ForeignKey(
         Group,
@@ -30,7 +37,8 @@ class Post(models.Model):
         null=True,
         on_delete=models.SET_NULL,
         verbose_name='название группы',
-        related_name='posts'
+        related_name='posts',
+        help_text='Укажите группу',
     )
 
     class Meta:
