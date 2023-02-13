@@ -10,6 +10,7 @@ from posts.forms import PostForm
 
 
 POSTS_PER_PAGE = 10
+POSTS_SECOND_PAGE = 1
 
 AUTHOR_USERNAME = 'TestAuthor'
 USER_USERNAME = 'TestUser'
@@ -120,28 +121,30 @@ class PaginatorViewsTest(TestCase):
         Post.objects.bulk_create([
             Post(
                 text=f'{POST_TEXT} {i}', author=cls.author, group=cls.group
-            ) for i in range(POSTS_PER_PAGE + 1)
+            ) for i in range(POSTS_PER_PAGE + POSTS_SECOND_PAGE)
         ])
 
     def test_paginator(self):
-        urls_expected_post_number = [
-            [PAG_INDEX_URL, Post.objects.all()[:POSTS_PER_PAGE]],
-            [PAG_GROUP_LIST_URL, self.group.posts.all()[:POSTS_PER_PAGE]],
-            [PAG_PROFILE_URL, self.author.posts.all()[:POSTS_PER_PAGE]],
-        ]
-        for url, queryset in urls_expected_post_number:
-            with self.subTest(url=url):
-                response_1 = self.client.get(url)
-                response_2 = self.client.get(url, {'page': 2})
-                self.assertEqual(response_1.status_code, HTTPStatus.OK)
-                self.assertEqual(response_2.status_code, HTTPStatus.OK)
-                page_obj_1 = response_1.context.get('page_obj')
-                page_obj_2 = response_2.context.get('page_obj')
-                self.assertIsNotNone(page_obj_1)
-                self.assertIsNotNone(page_obj_2)
-                self.assertIsInstance(page_obj_1, Page)
-                self.assertIsInstance(page_obj_2, Page)
-                self.assertQuerysetEqual(
-                    page_obj_1.object_list, queryset, transform=lambda x: x
-                )
-                self.assertEqual(len(page_obj_2.object_list), 1)
+        mount_of_posts_on_the_first_page = POSTS_PER_PAGE
+        mount_of_posts_on_the_second_page = POSTS_SECOND_PAGE
+
+        pages = (
+            (1, mount_of_posts_on_the_first_page),
+            (2, mount_of_posts_on_the_second_page),
+        )
+
+        urls_expected_post_number_2 = (
+            PAG_INDEX_URL,
+            PAG_GROUP_LIST_URL,
+            PAG_PROFILE_URL,
+        )
+
+        for url in urls_expected_post_number_2:
+            for page, mount in pages:
+                with self.subTest(url=url, page=page):
+                    response = self.client.get(url, {'page': page})
+                    page_obj = response.context.get('page_obj')
+                    self.assertEqual(response.status_code, HTTPStatus.OK)
+                    self.assertIsNotNone(page_obj)
+                    self.assertIsInstance(page_obj, Page)
+                    self.assertEqual(len(page_obj.object_list), mount)
